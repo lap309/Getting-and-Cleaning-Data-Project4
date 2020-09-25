@@ -1,40 +1,48 @@
 library(dplyr)
 
 filename<- "getdata_projectfiles_UCI HAR Dataset.zip"
-fileURL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
-download.file(fileURL, filename, method="curl")
+url <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+download.file(url, filename, method="curl")
 
-features <- read.table("UCI HAR Dataset/features.txt", col.names = c("n","functions"))
-activities <- read.table("UCI HAR Dataset/activity_labels.txt", col.names = c("code", "activity"))
-subject_test <- read.table("UCI HAR Dataset/test/subject_test.txt", col.names = "subject")
-x_test <- read.table("UCI HAR Dataset/test/X_test.txt", col.names = features$functions)
-y_test <- read.table("UCI HAR Dataset/test/y_test.txt", col.names = "code")
-subject_train <- read.table("UCI HAR Dataset/train/subject_train.txt", col.names = "subject")
-x_train <- read.table("UCI HAR Dataset/train/X_train.txt", col.names = features$functions)
-y_train <- read.table("UCI HAR Dataset/train/y_train.txt", col.names = "code")
+features<-read.table("~/Downloads/UCI HAR Dataset/features.txt", colnames=c("n", "Functions"))
+activitylabels<-read.table("~/Downloads/UCI HAR Dataset/activity_labels.txt", colnames=c("code", "Activity"))
 
-full_x<- rbind(x_train, x_test)
-full_y<- rbind(y_train, y_test)
-subject1<-rbing(subject_test, subject_train)
-all<- cbind(subject1, full_x, full_y)
 
-TidyData <- Merged_Data %>% select(subject, code, contains("mean"), contains("std"))
+subject_test<-read.table("~/Downloads/UCI HAR Dataset/test/subject_test.txt", colnames="Subject")
+testx<-read.table("~/Downloads/UCI HAR Dataset/test/X_test.txt")
+testy<-read.table("~/Downloads/UCI HAR Dataset/test/Y_test.txt")
+
+
+subject_train<-read.table("~/Downloads/UCI HAR Dataset/train/subject_train.txt", colnames="Subject")
+trainx<-read.table("~/Downloads/UCI HAR Dataset/train/X_train.txt")
+trainy<-read.table("~/Downloads/UCI HAR Dataset/train/y_train.txt")
+
+##Create one dataset
+train<-cbind(subject_train,trainy,trainx)
+test<-cbind(subject_test,testy,testx)
+all<-rbind(train,test)
+names(all) <- c("Subject","Activity",features$variable)
+
+##Extract only the measurements on the mean and standard deviations of each measurement
+
+all <- all%>%select(matches('mean|std|Activity|Subject'))
+
+##3
+all$Activity <- plyr::mapvalues(all$Activity, from=as.factor(1:6), to=activitylabels$Activity)
+
+##4
 TidyData$code <- activities[TidyData$code, 2]
-names(TidyData)[2] = "activity"
-names(TidyData)<-gsub("Acc", "Accelerometer", names(TidyData))
-names(TidyData)<-gsub("Gyro", "Gyroscope", names(TidyData))
-names(TidyData)<-gsub("BodyBody", "Body", names(TidyData))
-names(TidyData)<-gsub("Mag", "Magnitude", names(TidyData))
-names(TidyData)<-gsub("^t", "Time", names(TidyData))
-names(TidyData)<-gsub("^f", "Frequency", names(TidyData))
-names(TidyData)<-gsub("tBody", "TimeBody", names(TidyData))
-names(TidyData)<-gsub("-mean()", "Mean", names(TidyData), ignore.case = TRUE)
-names(TidyData)<-gsub("-std()", "STD", names(TidyData), ignore.case = TRUE)
-names(TidyData)<-gsub("-freq()", "Frequency", names(TidyData), ignore.case = TRUE)
-names(TidyData)<-gsub("angle", "Angle", names(TidyData))
-names(TidyData)<-gsub("gravity", "Gravity", names(TidyData))
+names(all)<-gsub("BodyBody", "Body", names(all))
+names(all)<-gsub("tBody", "TimeBody", names(all))
+names(all)<-gsub("gravity", "Gravity", names(all))
+names(all)<-gsub("Acc", "Accelerometer", names(all))
+names(all)<-gsub("Gyro", "Gyroscope", names(all))
+names(all)<-gsub("Mag", "Magnitude", names(all))
+names(all)<-gsub("^t", "Time_Doman", names(all))
+names(all)<-gsub("^f", "Frequency_Domain", names(all))
+names(all)<-gsub("angle", "Angle", names(all))
 
-FinalData <- TidyData %>%
-  group_by(subject, activity) %>%
-  summarise_all(funs(mean))
-write.table(FinalData, "FinalData.txt", row.name=FALSE)
+
+tidydata <- all%>%group_by(Activity,Subject)%>%summarise_all(mean)
+write.table(tidydata, "TidyData.txt", row.name=FALSE)
+
