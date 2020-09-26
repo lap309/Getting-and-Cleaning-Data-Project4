@@ -1,48 +1,58 @@
 library(dplyr)
+library(data.table)
 
 filename<- "getdata_projectfiles_UCI HAR Dataset.zip"
 url <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
 download.file(url, filename, method="curl")
 
-features<-read.table("~/Downloads/UCI HAR Dataset/features.txt", colnames=c("n", "Functions"))
-activitylabels<-read.table("~/Downloads/UCI HAR Dataset/activity_labels.txt", colnames=c("code", "Activity"))
+###Reading in files
+testy<- read.table("~/Downloads/UCI HAR Dataset/test/y_test.txt", header = F)
+trainy<- read.table("~/Downloads/UCI HAR Dataset/train/y_train.txt", header = F)
+testx <- read.table("~/Downloads/UCI HAR Dataset/test/X_test.txt", header = F)
+trainx <- read.table("~/Downloads/UCI HAR Dataset/train/X_train.txt", header = F)
+subjecttest <- read.table("~/Downloads/UCI HAR Dataset/test/subject_test.txt", header = F)
+subjecttrain <- read.table("~/Downloads/UCI HAR Dataset/train/subject_train.txt", header = F)
 
 
-subject_test<-read.table("~/Downloads/UCI HAR Dataset/test/subject_test.txt", colnames="Subject")
-testx<-read.table("~/Downloads/UCI HAR Dataset/test/X_test.txt")
-testy<-read.table("~/Downloads/UCI HAR Dataset/test/Y_test.txt")
+activitylabels <- read.table("~/Downloads/UCI HAR Dataset/activity_labels.txt", header = F)
+FeaturesNames <- read.table("~/Downloads/UCI HAR Dataset/features.txt", header = F)
+
+#####Merge the dataframes
+FeaturesData <- rbind(testx, trainx)
+SubjectData <- rbind(subjecttest, subjecttrain)
+ActivityData <- rbind(testy, trainy)
+
+names(ActivityData) <- "ActivityN"
+names(activitylabels) <- c("ActivityN", "Activity")
+
+Activity <- left_join(ActivityData, activitylabels, "ActivityN")[, 2]
 
 
-subject_train<-read.table("~/Downloads/UCI HAR Dataset/train/subject_train.txt", colnames="Subject")
-trainx<-read.table("~/Downloads/UCI HAR Dataset/train/X_train.txt")
-trainy<-read.table("~/Downloads/UCI HAR Dataset/train/y_train.txt")
+names(SubjectData) <- "Subject"
+#Rename FeaturesData columns using columns from FeaturesNames
+names(FeaturesData) <- FeaturesNames$V2
 
-##Create one dataset
-train<-cbind(subject_train,trainy,trainx)
-test<-cbind(subject_test,testy,testx)
-all<-rbind(train,test)
-names(all) <- c("Subject","Activity",features$variable)
+###Create one large Dataset with only these variables: SubjectData,  Activity,  FeaturesData
+all <- cbind(SubjectData, Activity)
+all <- cbind(DataSet, FeaturesData)
 
-##Extract only the measurements on the mean and standard deviations of each measurement
+###Create New datasets by extracting only the measurements on the mean and standard deviation for each measurement
+subFeaturesNames <- FeaturesNames$V2[grep("mean\\(\\)|std\\(\\)", FeaturesNames$V2)]
+DataNames <- c("Subject", "Activity", as.character(subFeaturesNames))
+all <- subset(all, select=DataNames)
 
-all <- all%>%select(matches('mean|std|Activity|Subject'))
-
-##3
-all$Activity <- plyr::mapvalues(all$Activity, from=as.factor(1:6), to=activitylabels$Activity)
-
-##4
-TidyData$code <- activities[TidyData$code, 2]
-names(all)<-gsub("BodyBody", "Body", names(all))
-names(all)<-gsub("tBody", "TimeBody", names(all))
-names(all)<-gsub("gravity", "Gravity", names(all))
+#####Rename the columns of the large dataset using more descriptive activity names
+names(all)<-gsub("^t", "time", names(all))
+names(all)<-gsub("^f", "frequency", names(all))
 names(all)<-gsub("Acc", "Accelerometer", names(all))
 names(all)<-gsub("Gyro", "Gyroscope", names(all))
 names(all)<-gsub("Mag", "Magnitude", names(all))
-names(all)<-gsub("^t", "Time_Doman", names(all))
-names(all)<-gsub("^f", "Frequency_Domain", names(all))
-names(all)<-gsub("angle", "Angle", names(all))
+names(all)<-gsub("BodyBody", "Body", names(all))
 
+####Create a second, independent tidy data set with the average of each variable for each activity and each subject
+new<-aggregate(. ~Subject + Activity, DataSet, mean)
+new<-new[order(new$Subject,new$Activity),]
 
-tidydata <- all%>%group_by(Activity,Subject)%>%summarise_all(mean)
-write.table(tidydata, "TidyData.txt", row.name=FALSE)
+#Save this tidy dataset to local file
+write.table(new, file = "tidydata.txt",row.name=FALSE)
 
