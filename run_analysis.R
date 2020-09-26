@@ -34,7 +34,7 @@ names(FeaturesData) <- FeaturesNames$V2
 
 ###Create one large Dataset with only these variables: SubjectData,  Activity,  FeaturesData
 all <- cbind(SubjectData, Activity)
-all <- cbind(DataSet, FeaturesData)
+all <- cbind(all, FeaturesData)
 
 ###Create New datasets by extracting only the measurements on the mean and standard deviation for each measurement
 subFeaturesNames <- FeaturesNames$V2[grep("mean\\(\\)|std\\(\\)", FeaturesNames$V2)]
@@ -56,7 +56,7 @@ names(all) <- gsub("Mag","(Euclidean norm) ",names(all))
 
 
 ####Create a second, independent tidy data set with the average of each variable for each activity and each subject
-new<-aggregate(. ~Subject + Activity, DataSet, mean)
+new<-aggregate(. ~Subject + Activity, all, mean)
 new<-new[order(new$Subject,new$Activity),]
 
 #Save this tidy dataset to local file
