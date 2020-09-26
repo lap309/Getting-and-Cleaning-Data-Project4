@@ -48,6 +48,12 @@ names(all)<-gsub("Acc", "Accelerometer", names(all))
 names(all)<-gsub("Gyro", "Gyroscope", names(all))
 names(all)<-gsub("Mag", "Magnitude", names(all))
 names(all)<-gsub("BodyBody", "Body", names(all))
+names(all)<-gsub("tBody", "TimeBody", names(all))
+names(all)<-gsub("gravity", "Gravity", names(all))
+names(all) <- gsub("Jerk","(jerk signal) ",names(all))
+names(all) <- gsub("Mag","(Euclidean norm) ",names(all))
+
+
 
 ####Create a second, independent tidy data set with the average of each variable for each activity and each subject
 new<-aggregate(. ~Subject + Activity, DataSet, mean)
